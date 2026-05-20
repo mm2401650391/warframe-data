@@ -1,0 +1,72 @@
+name: Fetch Warframe WorldState
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Fetch WorldState
+        run: |
+          echo "开始抓取..."
+          
+          # 备份原文件
+          cp data/worldstate.json data/worldstate.json.bak
+          
+          # 尝试 https
+          curl -s -A "Mozilla/5.0" \
+            --max-time 30 \
+            "https://content.warframe.com/dynamic/worldState.php" \
+            -o data/worldstate.json
+          
+          echo "curl 返回码: $?"
+          echo "文件大小:"
+          ls -la data/worldstate.json
+          echo "内容前200字符:"
+          head -c 200 data/worldstate.json || echo "无法读取"
+          
+          # 如果为空或不是 JSON，恢复备份
+          if [ ! -s data/worldstate.json ] || ! python3 -m json.tool data/worldstate.json > /dev/null 2>&1; then
+            echo "抓取失败，恢复备份"
+            cp data/worldstate.json.bak data/worldstate.json
+          fi
+          
+          rm -f data/worldstate.json.bak
+          
+      - name: Add grab timestamp
+        run: |
+          python3 -c "
+          import json
+          with open('data/worldstate.json', 'r') as f:
+              data = json.load(f)
+          data['_grabTime'] = '$(date -u +%Y-%m-%dT%H:%M:%SZ)'
+          with open('data/worldstate.json', 'w') as f:
+              json.dump(data, f)
+          "
+          
+      - name: Check if data changed
+        id: check
+        run: |
+          git add data/worldstate.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git commit -m "Update WorldState $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git push
