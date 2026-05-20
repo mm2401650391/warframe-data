@@ -23,11 +23,29 @@ jobs:
           cp data/worldstate.json data/worldstate.json.bak
           
           # 尝试 https
-                    wget -q -O data/worldstate.json \
-            --user-agent="Mozilla/5.0" \
-            --timeout=30 \
-            --max-redirect=5 \
-            "https://content.warframe.com/dynamic/worldState.php"
+                  - name: Fetch WorldState
+        run: |
+          echo "测试多个 API..."
+          
+          # 测试 1: https content.warframe.com
+          curl -s -A "Mozilla/5.0" --max-time 10 "https://content.warframe.com/dynamic/worldState.php" -o test1.json
+          echo "test1 大小: $(wc -c < test1.json)"
+          
+          # 测试 2: http api.warframe.com
+          curl -s -A "Mozilla/5.0" --max-time 10 "http://api.warframe.com/cdn/worldState.php" -o test2.json
+          echo "test2 大小: $(wc -c < test2.json)"
+          
+          # 测试 3: api.warframestat.us
+          curl -s -A "Mozilla/5.0" --max-time 10 "https://api.warframestat.us/pc" -o test3.json
+          echo "test3 大小: $(wc -c < test3.json)"
+          
+          # 选择最大的文件
+          ls -la test*.json
+          
+          # 用最大的文件
+          cp test1.json data/worldstate.json
+          
+          rm -f test*.json
           
           echo "curl 返回码: $?"
           echo "文件大小:"
