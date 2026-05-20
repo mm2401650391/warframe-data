@@ -25,7 +25,7 @@ jobs:
           # 尝试 https
           curl -s -A "Mozilla/5.0" \
             --max-time 30 \
-            "https://content.warframe.com/dynamic/worldState.php" \
+            "https://api.warframestat.us/pc" \
             -o data/worldstate.json
           
           echo "curl 返回码: $?"
