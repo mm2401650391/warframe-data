@@ -23,10 +23,11 @@ jobs:
           cp data/worldstate.json data/worldstate.json.bak
           
           # 尝试 https
-          curl -s -A "Mozilla/5.0" \
-            --max-time 30 \
-            "http://api.warframe.com/cdn/worldState.php" \
-            -o data/worldstate.json
+                    wget -q -O data/worldstate.json \
+            --user-agent="Mozilla/5.0" \
+            --timeout=30 \
+            --max-redirect=5 \
+            "https://content.warframe.com/dynamic/worldState.php"
           
           echo "curl 返回码: $?"
           echo "文件大小:"
